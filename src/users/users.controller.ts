@@ -11,13 +11,13 @@ import {
   ValidationPipe,
 } from "@nestjs/common";
 import { ApiOperation, ApiResponse, ApiTags } from "@nestjs/swagger";
-import { JwtAuthGuard } from "auth/jwt-auth.guard";
-import { Roles } from "auth/roles-auth.decorator";
-import { RolesGuard } from "auth/roles.guard";
-import { BanUserDto } from "users/dto/ban-user.dto";
-import { CreateUserDto } from "users/dto/create-user.dto";
-import { User } from "users/user.entity";
-import { UsersService } from "users/users.service";
+import { JwtAuthGuard } from "src/auth/jwt-auth.guard";
+import { Roles } from "src/auth/roles-auth.decorator";
+import { RolesGuard } from "src/auth/roles.guard";
+import { BanUserDto } from "src/users/dto/ban-user.dto";
+import { CreateUserDto } from "src/users/dto/create-user.dto";
+import { User } from "src/users/user.entity";
+import { UsersService } from "src/users/users.service";
 
 // В контроллере мы лишь прописываем пути запросов к api и методы, которые берут логику из нужных классов
 @ApiTags("Пользователи") //заголовок блока контроллера

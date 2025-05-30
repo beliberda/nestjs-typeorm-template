@@ -5,12 +5,12 @@ import {
   UnauthorizedException,
 } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
-import { LoginDto } from "auth/dto/login.dto";
 
 import * as bcrypt from "bcryptjs";
-import { CreateUserDto } from "users/dto/create-user.dto";
-import { User } from "users/user.entity";
-import { UsersService } from "users/users.service";
+import { LoginDto } from "src/auth/dto/login.dto";
+import { CreateUserDto } from "src/users/dto/create-user.dto";
+import { User } from "src/users/user.entity";
+import { UsersService } from "src/users/users.service";
 
 @Injectable()
 export class AuthService {
@@ -18,77 +18,99 @@ export class AuthService {
     private userService: UsersService,
     private jwtService: JwtService
   ) {}
+
   async login(userDto: LoginDto) {
     const user = await this.validateUser(userDto);
-    return this.generateTokens(user);
+    const tokens = await this.generateTokens(user);
+    await this.userService.saveRefreshToken(user.id, tokens.refreshToken);
+    return tokens;
   }
 
   async registration(userDto: CreateUserDto) {
     const candidate = await this.userService.getUserByEmail(userDto.email);
     if (candidate) {
       throw new HttpException(
-        "Такой пользователь уже существует",
+        "Пользователь с таким username существует",
         HttpStatus.BAD_REQUEST
       );
     }
-
     const hashPassword = await bcrypt.hash(userDto.password, 5);
     const user = await this.userService.createUser({
       ...userDto,
       password: hashPassword,
     });
-    // TODO ДОБАВИТЬ ЛОГИКУ ДОБАВЛЕНИЯ РОЛИ ПОСЛЕ СОЗДАНИЯ ЮЗЕРА
     return user;
   }
 
-  async refreshToken(refreshToken: string) {
-    try {
-      const userData = this.jwtService.verify(refreshToken); // Проверяем refresh-токен
-      const user = await this.userService.getUserById(userData.id);
-
-      if (!user) {
-        throw new UnauthorizedException("Пользователь не найден");
-      }
-      return this.generateTokens(user); // Генерируем новые токены
-    } catch (error) {
-      throw new UnauthorizedException("Ошибка валидации refresh-токена");
-    }
+  async logout(userId: number) {
+    await this.userService.saveRefreshToken(userId, null);
+    return true;
   }
-  private async generateTokens(user: User) {
-    if (user.banned) {
-      throw new UnauthorizedException("Пользователь забанен");
-    }
 
-    // ! Записать в токен необходимые данные
+  private async generateTokens(user: User) {
     const payload = {
+      id: user.id,
+      role: user.role,
       email: user.email,
     };
-
-    const accessToken = this.jwtService.sign(payload, { expiresIn: "30m" }); // Access-токен на 15 минут
-    const refreshToken = this.jwtService.sign(payload, { expiresIn: "14d" }); // Refresh-токен на 14 дней
-
-    return { accessToken, refreshToken };
+    return {
+      accessToken: this.jwtService.sign(payload, {
+        secret: process.env.JWT_ACCESS_SECRET,
+        expiresIn: "1h",
+      }),
+      refreshToken: this.jwtService.sign(payload, {
+        secret: process.env.JWT_REFRESH_SECRET,
+        expiresIn: "14d",
+      }),
+    };
   }
 
-  // Валидация пользователя
+  async refreshToken(refreshToken: string) {
+    if (!refreshToken) {
+      throw new UnauthorizedException("No refresh token provided");
+    }
+
+    try {
+      const payload = this.jwtService.verify(refreshToken, {
+        secret: process.env.JWT_REFRESH_SECRET,
+      });
+
+      const user = await this.userService.getUserById(payload.id);
+      if (!user) {
+        throw new UnauthorizedException("User not found");
+      }
+
+      if (user.banned) {
+        throw new UnauthorizedException("User is banned");
+      }
+
+      const tokens = await this.generateTokens(user);
+      await this.userService.saveRefreshToken(user.id, tokens.refreshToken);
+      return tokens;
+    } catch (e) {
+      if (e instanceof UnauthorizedException) {
+        throw e;
+      }
+      throw new UnauthorizedException("Invalid refresh token");
+    }
+  }
+
   private async validateUser(userDto: LoginDto) {
     const user = await this.userService.getUserByUsername(userDto.username);
-    if (!user) throw new UnauthorizedException("Некорректный email или пароль");
-
+    if (!user) {
+      throw new UnauthorizedException({
+        message: "Некорректный username или пароль",
+      });
+    }
     const passwordEquals = await bcrypt.compare(
       userDto.password,
       user.password
     );
-    if (!passwordEquals)
-      throw new UnauthorizedException("Некорректный email или пароль");
-
+    if (!passwordEquals) {
+      throw new UnauthorizedException({
+        message: "Некорректный username или пароль",
+      });
+    }
     return user;
-  }
-  async saveRefreshToken(userId: number, refreshToken: string) {
-    await this.userService.saveRefreshToken(userId, refreshToken);
-  }
-
-  async logout(userId: number) {
-    await this.userService.saveRefreshToken(userId, null); // Удаляем refreshToken из базы
   }
 }

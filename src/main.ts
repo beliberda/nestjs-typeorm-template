@@ -4,13 +4,12 @@ import { AppModule } from "src/app.module";
 
 async function start() {
   const PORT = process.env.PORT || 5000;
+
   const app = await NestFactory.create(AppModule);
-
   // настройка swaggera
-
   const config = new DocumentBuilder()
-    .setTitle("Кибер котлеты")
-    .setDescription("backend configuration for cyber kotletki server")
+    .setTitle("Nest template backend")
+    .setDescription("Documentation for the NestJS template backend")
     .setVersion("1.0.0")
     .addTag("auf")
     .build();
@@ -19,11 +18,7 @@ async function start() {
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup("/api/docs", app, document);
   app.enableCors({
-    origin: [
-      "http://localhost:5173",
-      "https://pwa.hrmny.pena.digital",
-      "https://www.pwa.hrmny.pena.digital",
-    ], // Разрешённые источники
+    origin: ["http://localhost:5173"], // Разрешённые источники
     methods: "GET,HEAD,PUT,PATCH,POST,DELETE", // Разрешённые методы
     allowedHeaders: "Content-Type, Authorization", // Разрешённые заголовки
     credentials: true, // Если используется куки

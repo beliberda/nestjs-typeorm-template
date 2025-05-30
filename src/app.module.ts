@@ -10,9 +10,14 @@ import * as path from "path";
 
 import { MulterModule } from "@nestjs/platform-express";
 import { TypeOrmModule } from "@nestjs/typeorm";
-import { LoggerMiddleware } from "middlewares/LoggerMiddleware";
 
-import { User } from "users/user.entity";
+import { Client } from "src/client/client.entity";
+import { Country } from "src/country/country.entity";
+import { ManagmentInfo } from "src/managment-info/managment-info.entity";
+import { Material } from "src/material/material.entity";
+import { LoggerMiddleware } from "src/middlewares/LoggerMiddleware";
+import { User } from "src/users/user.entity";
+
 
 @Module({
   controllers: [],
@@ -39,13 +44,14 @@ import { User } from "users/user.entity";
       username: process.env.POSTGRES_USER,
       password: process.env.POSTGRES_PASSWORD,
       database: process.env.POSTGRES_DB,
-      entities: [User],
+      entities: [User, Client, Country, Material, File, ManagmentInfo],
       synchronize: false,
       autoLoadEntities: true,
     }),
     UsersModule,
     AuthModule,
     FilesModule,
+   
   ],
 })
 export class AppModule {

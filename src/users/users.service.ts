@@ -1,13 +1,19 @@
 import { HttpException, HttpStatus, Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { UserTokenDto } from "auth/dto/userToken.dto";
+
 import * as bcrypt from "bcryptjs";
 
 import { Repository } from "typeorm";
 
-import { BanUserDto } from "users/dto/ban-user.dto";
-import { CreateUserDto } from "users/dto/create-user.dto";
-import { User } from "users/user.entity";
+import { User } from "./user.entity";
+import { UserTokenDto } from "src/auth/dto/userToken.dto";
+import { UserRole } from "src/enums/userRoles";
+import { BanUserDto } from "src/users/dto/ban-user.dto";
+import { CreateUserDto } from "src/users/dto/create-user.dto";
+
+// import { BanUserDto } from "users/dto/ban-user.dto";
+// import { CreateUserDto } from "users/dto/create-user.dto";
+// import { User } from "users/user.entity";
 @Injectable()
 export class UsersService {
   constructor(
@@ -21,10 +27,8 @@ export class UsersService {
       dto.password = await bcrypt.hash(dto.password, 5);
     }
     const user = await this.userRepository.create(dto); // Создаем пользователя
-    user.role = "USER";
+    user.role = UserRole.DISTRIBUTOR;
     await this.userRepository.save(user); // Сохраняем пользователя в базе данных
-
-    // Назначаем роль "USER" по умолчанию
 
     return await this.getUserByEmail(user.email);
   }

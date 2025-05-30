@@ -8,9 +8,10 @@ import {
 } from "@nestjs/common";
 import { Reflector } from "@nestjs/core";
 import { JwtService } from "@nestjs/jwt";
-import { UserTokenDto } from "auth/dto/userToken.dto";
-import { ROLES_KEY } from "auth/roles-auth.decorator";
+
 import { Observable } from "rxjs";
+import { UserTokenDto } from "src/auth/dto/userToken.dto";
+import { ROLES_KEY } from "src/auth/roles-auth.decorator";
 
 @Injectable()
 // Класс проверяющий права доступа к методам
