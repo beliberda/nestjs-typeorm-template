@@ -1,5 +1,5 @@
 import { MiddlewareConsumer, Module, RequestMethod } from "@nestjs/common";
-import { ConfigModule } from "@nestjs/config";
+import { ConfigModule, ConfigService } from "@nestjs/config";
 import { UsersModule } from "./users/users.module";
 
 import { ServeStaticModule } from "@nestjs/serve-static";
@@ -11,21 +11,47 @@ import * as path from "path";
 import { MulterModule } from "@nestjs/platform-express";
 import { TypeOrmModule } from "@nestjs/typeorm";
 
-import { Client } from "src/client/client.entity";
-import { Country } from "src/country/country.entity";
-import { ManagmentInfo } from "src/managment-info/managment-info.entity";
-import { Material } from "src/material/material.entity";
+import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from "@nestjs/core";
+import { ThrottlerGuard, ThrottlerModule } from "@nestjs/throttler";
 import { LoggerMiddleware } from "src/middlewares/LoggerMiddleware";
 import { User } from "src/users/user.entity";
-
+import { HttpExceptionFilter } from "./common/filters/http-exception.filter";
+import { TransformInterceptor } from "./common/interceptors/transform.interceptor";
+import { LoggerModule } from "./common/logger.module";
+import { BackupModule } from "./database/backup.module";
+import { File } from "./files/file.entity";
+import { HealthModule } from "./health/health.module";
+import { Role } from "./roles/role.entity";
+import { RolesModule } from "./roles/roles.module";
 
 @Module({
   controllers: [],
-  providers: [],
-  //   Когда хотим в один модуль импортировать другие модули (например для работы с бд sequalize)
+  providers: [
+    {
+      provide: APP_FILTER,
+      useClass: HttpExceptionFilter,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: TransformInterceptor,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
+  ],
   imports: [
+    LoggerModule,
+    ThrottlerModule.forRoot([
+      {
+        ttl: 60000, // 1 минута
+        limit: 100, // 100 запросов
+      },
+    ]),
     ConfigModule.forRoot({
-      envFilePath: `.${process.env.NODE_ENV}.env`,
+      envFilePath: [`.env.${process.env.NODE_ENV || "development"}`, ".env"],
+      isGlobal: true,
+      // validate: validate, // Раскомментировать для валидации ENV
     }),
     MulterModule.register({
       dest: "../uploads", // Временная папка для хранения файлов
@@ -37,21 +63,27 @@ import { User } from "src/users/user.entity";
       rootPath: path.resolve(__dirname, "..", "uploads"), // Указываем путь к папке uploads
       serveRoot: "/uploads", // Базовый URL для доступа к файлам
     }),
-    TypeOrmModule.forRoot({
-      type: "postgres",
-      host: process.env.POSTGRES_HOST,
-      port: Number(process.env.POSTGRES_PORT),
-      username: process.env.POSTGRES_USER,
-      password: process.env.POSTGRES_PASSWORD,
-      database: process.env.POSTGRES_DB,
-      entities: [User, Client, Country, Material, File, ManagmentInfo],
-      synchronize: false,
-      autoLoadEntities: true,
+    TypeOrmModule.forRootAsync({
+      imports: [ConfigModule],
+      useFactory: (configService: ConfigService) => ({
+        type: "postgres",
+        host: configService.get("POSTGRES_HOST"),
+        port: configService.get<number>("POSTGRES_PORT"),
+        username: configService.get("POSTGRES_USER"),
+        password: configService.get("POSTGRES_PASSWORD"),
+        database: configService.get("POSTGRES_DB"),
+        entities: [User, File, Role],
+        synchronize: false,
+        autoLoadEntities: true,
+      }),
+      inject: [ConfigService],
     }),
     UsersModule,
     AuthModule,
     FilesModule,
-   
+    RolesModule,
+    BackupModule,
+    HealthModule,
   ],
 })
 export class AppModule {

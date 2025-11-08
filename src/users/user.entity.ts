@@ -1,7 +1,7 @@
-import { UserRole } from "src/enums/userRoles";
 import { UserStatus } from "src/enums/userStatus";
 
-import { Column, Entity, PrimaryGeneratedColumn } from "typeorm";
+import { Role } from "src/roles/role.entity";
+import { Column, Entity, ManyToMany, PrimaryGeneratedColumn } from "typeorm";
 
 @Entity({ name: "users" }) // Указываем название таблицы
 export class User {
@@ -14,8 +14,8 @@ export class User {
   @Column()
   password: string;
 
-  @Column({ type: "enum", enum: UserRole, default: UserRole.DISTRIBUTOR })
-  role: UserRole;
+  @ManyToMany(() => Role, (role) => role.users)
+  roles: Role[];
 
   @Column({ type: "enum", enum: UserStatus, default: UserStatus.PENDING })
   status: UserStatus;

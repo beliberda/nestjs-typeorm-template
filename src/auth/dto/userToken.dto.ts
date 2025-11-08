@@ -1,6 +1,14 @@
+import { ApiProperty } from "@nestjs/swagger";
+
 export class UserTokenDto {
+  @ApiProperty({ example: "user@example.com" })
   readonly email: string;
+
+  @ApiProperty({ example: 1 })
   readonly id: number;
-  readonly role: string;
-  readonly password: string;
+
+  @ApiProperty({ example: ["admin", "user"], type: [String] })
+  readonly roles: string[];
+
+  readonly password?: string;
 }

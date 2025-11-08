@@ -1,7 +1,11 @@
-import { DataSource } from "typeorm";
 import { config } from "dotenv";
-require("dotenv").config({ path: `./.${process.env.NODE_ENV}.env` });
-config();
+import * as path from "path";
+import { DataSource } from "typeorm";
+
+// Загружаем env файлы в правильном порядке
+const nodeEnv = process.env.NODE_ENV || "development";
+config({ path: path.resolve(process.cwd(), `.env.${nodeEnv}`) });
+config({ path: path.resolve(process.cwd(), ".env") });
 
 const AppDataSource = new DataSource({
   type: "postgres",

@@ -48,7 +48,8 @@ export class RolesGuard implements CanActivate {
       req.user = user;
 
       // есть ли у пользователя для этого endpoint роль
-      return requiredRoles.includes(user.role);
+      const userRoles = user.roles || [];
+      return requiredRoles.some((role) => userRoles.includes(role));
     } catch (e) {
       throw new HttpException(
         "У вас недостаточно прав доступа",

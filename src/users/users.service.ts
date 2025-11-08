@@ -5,15 +5,10 @@ import * as bcrypt from "bcryptjs";
 
 import { Repository } from "typeorm";
 
-import { User } from "./user.entity";
-import { UserTokenDto } from "src/auth/dto/userToken.dto";
-import { UserRole } from "src/enums/userRoles";
 import { BanUserDto } from "src/users/dto/ban-user.dto";
 import { CreateUserDto } from "src/users/dto/create-user.dto";
+import { User } from "./user.entity";
 
-// import { BanUserDto } from "users/dto/ban-user.dto";
-// import { CreateUserDto } from "users/dto/create-user.dto";
-// import { User } from "users/user.entity";
 @Injectable()
 export class UsersService {
   constructor(
@@ -22,12 +17,11 @@ export class UsersService {
   ) {}
 
   // Создание пользователя
-  async createUser(dto: CreateUserDto): Promise<UserTokenDto | null> {
+  async createUser(dto: CreateUserDto): Promise<User | null> {
     if (dto.password !== "" && dto.password) {
       dto.password = await bcrypt.hash(dto.password, 5);
     }
     const user = await this.userRepository.create(dto); // Создаем пользователя
-    user.role = UserRole.DISTRIBUTOR;
     await this.userRepository.save(user); // Сохраняем пользователя в базе данных
 
     return await this.getUserByEmail(user.email);
@@ -42,14 +36,17 @@ export class UsersService {
 
   // Получение всех пользователей
   async getAllUsers() {
-    const users = await this.userRepository.find();
+    const users = await this.userRepository.find({
+      relations: ["roles"],
+    });
     return users;
   }
 
   // Получение пользователя по email
-  async getUserByEmail(email: string): Promise<UserTokenDto | null> {
+  async getUserByEmail(email: string): Promise<User | null> {
     const user = await this.userRepository.findOne({
       where: { email },
+      relations: ["roles"],
     });
 
     if (!user) {
@@ -61,6 +58,7 @@ export class UsersService {
   async getUserById(id: number): Promise<User | null> {
     const user = await this.userRepository.findOne({
       where: { id },
+      relations: ["roles"],
     });
 
     if (!user) {
@@ -72,6 +70,7 @@ export class UsersService {
   async getUserByUsername(email: string): Promise<User | null> {
     const user = await this.userRepository.findOne({
       where: { email },
+      relations: ["roles"],
     });
 
     if (!user) {
@@ -123,7 +122,7 @@ export class UsersService {
         HttpStatus.NOT_FOUND
       );
     }
-    Object.assign(user, refreshToken);
+    user.refreshToken = refreshToken || "";
     return await this.userRepository.save(user);
   }
 

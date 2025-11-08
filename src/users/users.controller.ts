@@ -10,7 +10,12 @@ import {
   UsePipes,
   ValidationPipe,
 } from "@nestjs/common";
-import { ApiOperation, ApiResponse, ApiTags } from "@nestjs/swagger";
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+} from "@nestjs/swagger";
 import { JwtAuthGuard } from "src/auth/jwt-auth.guard";
 import { Roles } from "src/auth/roles-auth.decorator";
 import { RolesGuard } from "src/auth/roles.guard";
@@ -21,6 +26,7 @@ import { UsersService } from "src/users/users.service";
 
 // В контроллере мы лишь прописываем пути запросов к api и методы, которые берут логику из нужных классов
 @ApiTags("Пользователи") //заголовок блока контроллера
+@ApiBearerAuth("JWT-auth")
 @Controller("users")
 export class UsersController {
   constructor(private userService: UsersService) {}
@@ -64,6 +70,13 @@ export class UsersController {
     return this.userService.banUser(dto);
   }
 
+  @ApiOperation({ summary: "Обновить данные пользователя" })
+  @ApiResponse({
+    status: 200,
+    type: User,
+    description: "Пользователь успешно обновлен",
+  })
+  @ApiResponse({ status: 404, description: "Пользователь не найден" })
   @Roles("ADMIN")
   @UseGuards(JwtAuthGuard)
   @Put(":id")

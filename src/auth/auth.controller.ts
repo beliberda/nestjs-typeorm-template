@@ -8,7 +8,12 @@ import {
   UseGuards,
 } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
-import { ApiTags } from "@nestjs/swagger";
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+} from "@nestjs/swagger";
 
 import { Request, Response } from "express";
 import { AuthService } from "src/auth/auth.service";
@@ -25,6 +30,18 @@ export class AuthController {
     private jwtService: JwtService
   ) {}
 
+  @ApiOperation({ summary: "Вход в систему" })
+  @ApiResponse({
+    status: 200,
+    description: "Успешный вход",
+    schema: {
+      type: "object",
+      properties: {
+        accessToken: { type: "string" },
+      },
+    },
+  })
+  @ApiResponse({ status: 401, description: "Неверные учетные данные" })
   @Post("/login")
   async login(
     @Body() userDto: LoginDto,
@@ -41,12 +58,33 @@ export class AuthController {
 
     return { accessToken }; // Отдаем только access-токен, refresh хранится в cookie
   }
+  @ApiOperation({ summary: "Регистрация нового пользователя" })
+  @ApiResponse({
+    status: 201,
+    description: "Пользователь успешно зарегистрирован",
+  })
+  @ApiResponse({
+    status: 400,
+    description: "Пользователь с таким email уже существует",
+  })
   @Roles("ADMIN", "TEACHER")
   @Post("/registration")
   registration(@Body() userDto: CreateUserDto) {
     return this.authService.registration(userDto);
   }
 
+  @ApiOperation({ summary: "Обновление access токена" })
+  @ApiResponse({
+    status: 200,
+    description: "Токен успешно обновлен",
+    schema: {
+      type: "object",
+      properties: {
+        accessToken: { type: "string" },
+      },
+    },
+  })
+  @ApiResponse({ status: 401, description: "Неверный refresh токен" })
   @Post("/refresh")
   async refresh(
     @Req() req: Request,
@@ -67,6 +105,10 @@ export class AuthController {
 
     return { accessToken };
   }
+  @ApiOperation({ summary: "Выход из системы" })
+  @ApiResponse({ status: 200, description: "Успешный выход" })
+  @ApiResponse({ status: 401, description: "Пользователь не авторизован" })
+  @ApiBearerAuth("JWT-auth")
   @UseGuards(JwtAuthGuard)
   @Post("/logout")
   async logout(@Req() req: Request, @Res({ passthrough: true }) res: Response) {

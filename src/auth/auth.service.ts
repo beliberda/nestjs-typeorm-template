@@ -48,9 +48,10 @@ export class AuthService {
   }
 
   private async generateTokens(user: User) {
+    const roles = user.roles ? user.roles.map((role) => role.name) : [];
     const payload = {
       id: user.id,
-      role: user.role,
+      roles: roles,
       email: user.email,
     };
     return {

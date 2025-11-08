@@ -1,17 +1,33 @@
 import { NestFactory } from "@nestjs/core";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
+import { WINSTON_MODULE_NEST_PROVIDER } from "nest-winston";
 import { AppModule } from "src/app.module";
 
 async function start() {
   const PORT = process.env.PORT || 5000;
 
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, {
+    bufferLogs: true,
+  });
+
+  // Используем кастомный logger
+  app.useLogger(app.get(WINSTON_MODULE_NEST_PROVIDER));
   // настройка swaggera
   const config = new DocumentBuilder()
     .setTitle("Nest template backend")
     .setDescription("Documentation for the NestJS template backend")
     .setVersion("1.0.0")
-    .addTag("auf")
+    .addBearerAuth(
+      {
+        type: "http",
+        scheme: "bearer",
+        bearerFormat: "JWT",
+        name: "JWT",
+        description: "Enter JWT token",
+        in: "header",
+      },
+      "JWT-auth"
+    )
     .build();
 
   // подключаем swagger к приложению и указываем путь к документации
