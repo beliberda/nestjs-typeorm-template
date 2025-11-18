@@ -18,9 +18,6 @@ export class UsersService {
 
   // Создание пользователя
   async createUser(dto: CreateUserDto): Promise<User | null> {
-    if (dto.password !== "" && dto.password) {
-      dto.password = await bcrypt.hash(dto.password, 5);
-    }
     const user = await this.userRepository.create(dto); // Создаем пользователя
     await this.userRepository.save(user); // Сохраняем пользователя в базе данных
 
